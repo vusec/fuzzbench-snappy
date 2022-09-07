@@ -55,4 +55,7 @@ docker run \
 {% if not local_experiment %}--name=runner-container {% endif %}\
 --cap-add SYS_NICE --cap-add SYS_PTRACE \
 --security-opt seccomp=unconfined \
+{% for device in exposed_devices -%}
+--device '{{device}}' \
+{% endfor -%}
 {{docker_image_url}} 2>&1 | tee /tmp/runner-log.txt

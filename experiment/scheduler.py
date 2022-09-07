@@ -743,6 +743,7 @@ def render_startup_script_template(  # pylint: disable=too-many-arguments
         'num_cpu_cores': experiment_config['runner_num_cpu_cores'],
         'cpuset': cpuset,
         'custom_seed_corpus_dir': experiment_config['custom_seed_corpus_dir'],
+        'exposed_devices': experiment_config.get('exposed_devices', [])
     }
 
     if not local_experiment:

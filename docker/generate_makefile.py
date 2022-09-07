@@ -23,6 +23,7 @@ from experiment.build import docker_images
 
 BASE_TAG = "gcr.io/fuzzbench"
 BENCHMARK_DIR = benchmark_utils.BENCHMARKS_DIR
+EXPOSED_DEVICES = ['/dev/afl_snapshot']
 
 
 def _get_benchmark_fuzz_target(benchmarks):
@@ -67,6 +68,10 @@ def _get_makefile_run_template(image):
 \t-e BENCHMARK={benchmark} \\\n\
 \t-e FUZZ_TARGET=$({benchmark}-fuzz-target) \\\
 \n'
+
+        for exposed_device in EXPOSED_DEVICES:
+            if os.path.exists(exposed_device):
+                section += f'\t--device {exposed_device} \\\n'
 
         if run_type == 'test-run':
             section += '\t-e MAX_TOTAL_TIME=20 \\\n\t-e SNAPSHOT_PERIOD=10 \\\n'
