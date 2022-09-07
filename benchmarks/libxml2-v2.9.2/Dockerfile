@@ -25,6 +25,9 @@ RUN apt-get update && \
     libtool \
     libglib2.0-dev
 
+RUN apt-get upgrade -y \
+    ca-certificates
+
 RUN git clone https://gitlab.gnome.org/GNOME/libxml2.git
 
 RUN wget -qO $OUT/xml.dict \
