@@ -1,0 +1,11 @@
+--- a/tool/fuzzershell.c	2022-01-24 14:16:51.351098272 +0100
++++ b/tool/fuzzershell.c	2022-01-24 14:17:01.691435102 +0100
+@@ -786,7 +786,7 @@
+   return t;
+ }
+ 
+-int main(int argc, char **argv){
++int old_main(int argc, char **argv){
+   char *zIn = 0;                /* Input text */
+   int nAlloc = 0;               /* Number of bytes allocated for zIn[] */
+   int nIn = 0;                  /* Number of bytes of zIn[] used */

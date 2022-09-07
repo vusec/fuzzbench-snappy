@@ -1,0 +1,2 @@
+fuzz_target: sqlite3_fuzz_target
+project: sqlite3
