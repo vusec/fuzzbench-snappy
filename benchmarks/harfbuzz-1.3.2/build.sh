@@ -21,7 +21,7 @@ CCLD="$CXX $CXXFLAGS" ./configure --enable-static --disable-shared \
     --with-glib=no --with-cairo=no
 make -j $(nproc) -C src fuzzing
 
-mkdir $OUT/seeds
+mkdir -p $OUT/seeds
 cp test/shaping/fonts/sha1sum/* $OUT/seeds/
 
 $CXX $CXXFLAGS -std=c++11 -I src/ test/fuzzing/hb-fuzzer.cc \
