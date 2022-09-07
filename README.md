@@ -1,56 +1,137 @@
-# FuzzBench: Fuzzer Benchmarking As a Service
+# FuzzBench Fork for Snappy Evaluation
 
-FuzzBench is a free service that evaluates fuzzers on a wide variety of
-real-world benchmarks, at Google scale. The goal of FuzzBench is to make it
-painless to rigorously evaluate fuzzing research and make fuzzing research
-easier for the community to adopt. We invite members of the research community
-to contribute their fuzzers and give us feedback on improving our evaluation
-techniques.
+This FuzzBench fork contains the code necessary to run all the experiments in
+the paper "Snappy: Efficient Fuzzing with Adaptive and Mutable Snapshots". The
+code for the fuzzer can be found in [this][snappy] repository.
 
-FuzzBench provides:
+This fork contains two additional fuzzers (`angora`, `snappy`) and two
+additional benchmarks (`binutils_fuzz_objdump`, `sqlite3_shell`).
 
-* An easy API for integrating fuzzers.
-* Benchmarks from real-world projects. FuzzBench can use any
-  [OSS-Fuzz](https://github.com/google/oss-fuzz) project as a benchmark.
-* A reporting library that produces reports with graphs and statistical tests
-  to help you understand the significance of results.
+While the original [FuzzBench documentation][fuzzbench-docs] can be used to
+solve most of the issues that may araise, this fork requires additional steps to
+set up the kernel module used for snapshotting. This module is stored in a
+[separate repository][snapshot-lkm].
 
-To participate, submit your fuzzer to run on the FuzzBench platform by following
-[our simple guide](
-https://google.github.io/fuzzbench/getting-started/).
-After your integration is accepted, we will run a large-scale experiment using
-your fuzzer and generate a report comparing your fuzzer to others.
-See [a sample report](https://www.fuzzbench.com/reports/sample/index.html).
+[fuzzbench-docs]: https://google.github.io/fuzzbench/
+[snapshot-lkm]: https://github.com/vusec/AFL-Snapshot-LKM-snappy
 
-## Overview
-![FuzzBench Service diagram](docs/images/FuzzBench-service.png)
+The snapshotting kernel module has only been tested on Ubuntu 20.04 with kernel
+5.15, so this is the recommended setup to use. FuzzBench itself does not impose
+further restrictions, apart from requiring Python 3.9 and Docker, which are both
+available for that distribution.
 
-## Sample Report
 
-You can view our sample report
-[here](https://www.fuzzbench.com/reports/sample/index.html) and
-our periodically generated reports
-[here](https://www.fuzzbench.com/reports/index.html).
-The sample report is generated using 10 fuzzers against 24 real-world
-benchmarks, with 20 trials each and over a duration of 24 hours.
-The raw data in compressed CSV format can be found at the end of the report.
+## Preparation
 
-When analyzing reports, we recommend:
-* Checking the strengths and weaknesses of a fuzzer against various benchmarks.
-* Looking at aggregate results to understand the overall significance of the
-  result.
+Assuming you are running Ubuntu 20.04, you can install kernel 5.15 as follows:
 
-Please provide feedback on any inaccuracies and potential improvements (such as
-integration changes, new benchmarks, etc.) by opening a GitHub issue
-[here](https://github.com/google/fuzzbench/issues/new).
+```bash
+sudo add-apt-repository ppa:canonical-kernel-team/proposed
+sudo apt update
+sudo apt upgrade
+sudo apt install linux-headers-5.15.*-*-generic linux-image-5.15.*-*-generic
+```
 
-## Documentation
+Make sure to reboot and check with `uname -r` that you are running the right
+kernel version.
 
-Read our [detailed documentation](https://google.github.io/fuzzbench/) to learn
-how to use FuzzBench.
+Then, you should build and load the snapshotting kernel module from its
+[repository][snapshot-lkm]. Detailed instructions are provided there. You can
+verify that the module was successfully loaded by checking if
+`/dev/afl_snapshot` is present.
 
-## Contacts
+After this, you can install Docker following the instructions in the [official
+documentation][docker-docs].
 
-Join our [mailing list](https://groups.google.com/forum/#!forum/fuzzbench-users)
-for discussions and announcements, or send us a private email at
-[fuzzbench@google.com](mailto:fuzzbench@google.com).
+[docker-docs]: https://docs.docker.com/engine/install/ubuntu/
+
+Finally, you should install the following packages to be able to run FuzzBench:
+
+```bash
+sudo apt install python3.9 python3.9-dev python3.9-venv libpq-dev
+```
+
+The setup can then be finished following the FuzzBench
+[documentation][fuzzbench-prereq].
+
+[fuzzbench-prereq]: https://google.github.io/fuzzbench/getting-started/prerequisites/
+
+
+## Running experiments
+
+In order to run experiments you will need a configuration file. The one we used
+for our experiments is the following:
+
+```yaml
+# The number of trials of a fuzzer-benchmark pair.
+trials: 16
+
+# The amount of time in seconds that each trial is run for.
+# 24 hours = 24 * 60 * 60 = 86400
+max_total_time: 86400
+
+# The location of the docker registry.
+# FIXME: Support custom docker registry.
+# See https://github.com/google/fuzzbench/issues/777
+docker_registry: gcr.io/fuzzbench
+
+# The local experiment folder that will store most of the experiment data.
+# Please use an absolute path.
+experiment_filestore: /home/ubuntu/snappy-experiments/experiment-data
+
+# The local report folder where HTML reports and summary data will be stored.
+# Please use an absolute path.
+report_filestore: /home/ubuntu/snappy-experiments/report-data
+
+# Flag that indicates this is a local experiment.
+local_experiment: true
+
+exposed_devices:
+  - /dev/afl_snapshot
+```
+
+You can then start experiments using the following command line:
+
+```bash
+PYTHONPATH=. python3 experiment/run_experiment.py \
+  --experiment-config ${config_file} \
+  --concurrent-builds 2 \
+  --runners-cpus 32 \
+  --measurers-cpus 32 \
+  --experiment-name ${experiment_name} \
+  --fuzzers angora snappy \
+  --benchmarks ${benchmark_list[@]}
+```
+
+It is important to note that you should avoid committing more cores than the
+total amount available on your machine. That command is for a machine with 64
+cores. If you run out of RAM while building, you may want to reduce the
+concurrent builds to 1. Make sure to use only benchmarks that are listed in the
+paper, the others are not supported.
+
+
+## Results analysis
+
+Albeit graphically different from the plots in the paper, FuzzBench will
+automatically generate an HTML report with coverage data.
+
+The other data, which was used for the speed plots and other statistics, can be
+extracted with the following two scripts, which are part of the [fuzzer
+repository][snappy].
+
+```bash
+python3 ${snappy_root}/tools/extract_angora_logs.py \
+  ${experiment_filestore}/${experiment_name} \
+  ${output_file}.csv.gz
+
+python3 ${snappy_root}/tools/experiment_stats.py \
+  ${experiment_filestore}/${experiment_name}
+```
+
+The first script simply extracts the logs produced by the fuzzer from the
+archives and stores it in a format that can be easily processed with `pandas`.
+The second, instead, processes the histograms generated by the predictor and
+stores the results in a `paper_stats.csv` file, inside the experiment folder.
+This file is used to generate the statistics used in our tables.
+
+[snappy]: https://github.com/vusec/snappy
