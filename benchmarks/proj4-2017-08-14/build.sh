@@ -19,7 +19,7 @@ git checkout d00501750b210a73f9fb107ac97a683d4e3d8e7a
 ./configure
 make -j $(nproc)
 
-mkdir $OUT/seeds
+mkdir -p $OUT/seeds
 cp nad/* $OUT/seeds
 
 $CXX $CXXFLAGS -std=c++11 -I src test/fuzzers/standard_fuzzer.cpp \
