@@ -4,8 +4,9 @@ This FuzzBench fork contains the code necessary to run all the experiments in
 the paper "Snappy: Efficient Fuzzing with Adaptive and Mutable Snapshots". The
 code for the fuzzer can be found in [this][snappy] repository.
 
-This fork contains two additional fuzzers (`angora`, `snappy`) and two
-additional benchmarks (`binutils_fuzz_objdump`, `sqlite3_shell`).
+This fork contains three additional fuzzers (`angora`, `snappy`,
+`snappy_no_exit`) and two additional benchmarks (`binutils_fuzz_objdump`,
+`sqlite3_shell`).
 
 While the original [FuzzBench documentation][fuzzbench-docs] can be used to
 solve most of the issues that may araise, this fork requires additional steps to
